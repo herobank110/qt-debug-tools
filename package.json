@@ -17,7 +17,16 @@
         "command": "qt-debug-tools.helloWorld",
         "title": "Hello World"
       }
-    ]
+    ],
+    "views": {
+      "debug": [
+        {
+          "id": "qt-debug-tools.view",
+          "name": "Elements",
+          "icon": "./res/icons/widgets_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",
