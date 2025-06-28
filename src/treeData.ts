@@ -9,7 +9,27 @@ export class ElementsTreeDataProvider
   readonly onDidChangeTreeData: vscode.Event<ItemData | undefined | void> =
     this._onDidChangeTreeData.event;
 
-//   constructor() {}
+  private debugSession: vscode.DebugSession | undefined;
+
+  constructor(private context: vscode.ExtensionContext) {
+    // Listen for debug session changes
+    context.subscriptions.push(
+      vscode.debug.onDidStartDebugSession((session) => {
+        this.debugSession = session;
+        this.refresh();
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.debug.onDidTerminateDebugSession(() => {
+        this.debugSession = undefined;
+        this.refresh();
+      })
+    );
+
+    // Set current debug session if already active
+    this.debugSession = vscode.debug.activeDebugSession;
+  }
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
@@ -21,23 +41,81 @@ export class ElementsTreeDataProvider
   }
 
   getChildren(element?: ItemData): Thenable<ItemData[]> {
-    // if (!this.workspaceRoot) {
-    //   vscode.window.showInformationMessage("No dependency in empty workspace");
-    //   return Promise.resolve([]);
-    // }
+    if (!this.debugSession) {
+      return Promise.resolve([new ItemData("No active debug session", "")]);
+    }
+
     console.log("getChildren", element);
-    return Promise.resolve([new ItemData()]);
+
+    if (!element) {
+      // Root level - execute simple Python expressions to demonstrate capability
+      return this.executePythonExpressions();
+    }
+
+    // For child elements, you can implement specific logic
+    return Promise.resolve([]);
+  }
+
+  private async executePythonExpressions(): Promise<ItemData[]> {
+    if (!this.debugSession) {
+      return [];
+    }
+
+    try {
+      const results: ItemData[] = [];
+
+      // Simple Python expressions to demonstrate execution capability
+      const expressions = [
+        "1+1",
+        "2*3",
+        "len('hello')",
+        "import sys; sys.version_info.major",
+      ];
+
+      for (const expr of expressions) {
+        try {
+          const result = await this.evaluatePythonExpression(expr);
+          results.push(new ItemData(`${expr}`, `= ${result}`));
+        } catch (error) {
+          results.push(new ItemData(`${expr}`, `Error: ${error}`));
+        }
+      }
+
+      return results.length > 0 ? results : [new ItemData("No results", "")];
+    } catch (error) {
+      console.error("Error executing Python expressions:", error);
+      return [new ItemData("Error", "Failed to execute Python expressions")];
+    }
+  }
+
+  private async evaluatePythonExpression(expression: string): Promise<any> {
+    if (!this.debugSession) {
+      throw new Error("No active debug session");
+    }
+
+    try {
+      // Send evaluate request to debug adapter
+      const response = await this.debugSession.customRequest("evaluate", {
+        expression: expression,
+        context: "repl",
+      });
+      return response.result;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
 export class ItemData extends vscode.TreeItem {
-  constructor() {
-    // public readonly command?: vscode.Command // public readonly collapsibleState: vscode.TreeItemCollapsibleState, // private readonly version: string, // public readonly label: string,
-    // super(label, collapsibleState);
-    super("Hello", vscode.TreeItemCollapsibleState.Collapsed);
-
-    // this.tooltip = `${this.label}-${this.version}`;
-    // this.description = this.version;
+  constructor(
+    label: string = "Hello",
+    description: string = "",
+    collapsibleState: vscode.TreeItemCollapsibleState = vscode
+      .TreeItemCollapsibleState.None
+  ) {
+    super(label, collapsibleState);
+    this.description = description;
+    this.tooltip = `${label}: ${description}`;
   }
 
   //   iconPath = {

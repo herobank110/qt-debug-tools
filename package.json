@@ -16,6 +16,11 @@
       {
         "command": "qt-debug-tools.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "qt-debug-tools.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
     ],
     "views": {
@@ -25,6 +30,15 @@
           "name": "Elements",
           "contextualTitle": "Elements",
           "icon": "./res/icons/widgets_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "qt-debug-tools.refresh",
+          "when": "view == qt-debug-tools.elements",
+          "group": "navigation"
         }
       ]
     }
