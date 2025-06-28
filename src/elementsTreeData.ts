@@ -57,6 +57,7 @@ export class ElementsTreeDataProvider
   }
 
   private async executePythonExpressions(): Promise<ItemData[]> {
+    console.log("executePythonExpressions()");
     if (!this.debugSession) {
       return [];
     }
@@ -66,35 +67,11 @@ export class ElementsTreeDataProvider
 
       // Simple Python expressions to demonstrate execution capability
       const expressions = [
-        "a = 1+1",
         "2*3",
         "len('hello')",
-        "import sys; sys.version_info.major",
+        "__import__('sys').version_info.major",
       ];
 
-      for (const expr of expressions) {
-        try {
-          const result = await this.evaluatePythonExpression(expr);
-          results.push(new ItemData(`${expr}`, `= ${result}`));
-        } catch (error) {
-          results.push(new ItemData(`${expr}`, `Error: ${error}`));
-        }
-      }
-
-      return results.length > 0 ? results : [new ItemData("No results", "")];
-    } catch (error) {
-      console.error("Error executing Python expressions:", error);
-      return [new ItemData("Error", "Failed to execute Python expressions")];
-    }
-  }
-
-  private async evaluatePythonExpression(expression: string): Promise<any> {
-    if (!this.debugSession) {
-      throw new Error("No active debug session");
-    }
-
-    try {
-      // Send evaluate request to debug adapter
       const threads = await this.debugSession.customRequest("threads");
       const threadId: any = threads.threads.find(
         (x: any) => x.name === "MainThread"
@@ -109,17 +86,48 @@ export class ElementsTreeDataProvider
         }
       );
       const frameId = stackTraceResult.stackFrames[0].id;
+      // sort of works but not on initialization. need to wait a moment
+      // to let main debugpy extension initialize so puyt it on a timer!
+      // await this.debugSession.customRequest("pause", { threadId });
 
-      const response = await this.debugSession.customRequest("evaluate", {
-        expression,
-        frameId,
-        context: "watch",
-      });
-      return response.result;
+      for (const expression of expressions) {
+        try {
+          const response = await this.debugSession.customRequest("evaluate", {
+            expression,
+            frameId,
+            context: "watch",
+          });
+          const result = response.result;
+          results.push(new ItemData(`${expression}`, `= ${result}`));
+        } catch (error) {
+          results.push(new ItemData(`${expression}`, `Error: ${error}`));
+        }
+      }
+      // not working for some reason...
+      // await this.debugSession.customRequest("continue", {
+      //   threadId,
+      // });
+
+      return results.length > 0 ? results : [new ItemData("No results", "")];
     } catch (error) {
-      throw error;
+      console.error("Error executing Python expressions:", error);
+      return [new ItemData("Error", "Failed to execute Python expressions")];
     }
   }
+
+  // private async evaluatePythonExpression(expression: string): Promise<any> {
+  //   if (!this.debugSession) {
+  //     throw new Error("No active debug session");
+  //   }
+
+  //   try {
+  //     // Send evaluate request to debug adapter
+
+  //     return response.result;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // }
 }
 
 export class ItemData extends vscode.TreeItem {
