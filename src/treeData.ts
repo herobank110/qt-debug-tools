@@ -66,7 +66,7 @@ export class ElementsTreeDataProvider
 
       // Simple Python expressions to demonstrate execution capability
       const expressions = [
-        "1+1",
+        "print(1+1)",
         "2*3",
         "len('hello')",
         "import sys; sys.version_info.major",
@@ -95,6 +95,19 @@ export class ElementsTreeDataProvider
 
     try {
       // Send evaluate request to debug adapter
+      const threads = await this.debugSession.customRequest("threads");
+      const threadId = threads.threads.find((x) => x.name == "MainThread")?.id;
+      if (!threadId) {
+        throw new Error("MainThread not found");
+      }
+      const stackTraceResult = await this.debugSession.customRequest(
+        "stackTrace",
+        {
+          threadId,
+        }
+      );
+      const frameId = stackTraceResult.stackFrames[0].id;
+
       const response = await this.debugSession.customRequest("evaluate", {
         expression: expression,
         context: "repl",
