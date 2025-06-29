@@ -2,7 +2,7 @@
 
 Debug tools for Python-based Qt Widgets applications in Visual Studio Code.
 
-![demo](res/widgets%20debug%20tool%20demo.gif)
+![demo](./res/widgets%20debug%20tool%20demo.gif)
 
 ## Features
 
