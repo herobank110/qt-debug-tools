@@ -102,7 +102,7 @@ export class ElementsTreeDataProvider
 
     // TODO: use refloader to bundle python script in dist folder properly
     const scriptPath = __dirname + "/../src/injection.py";
-    const expression = `exec(open(r"${scriptPath.replace(/\\/g, "/")}").read()) or "Initialized"`;
+    const expression = `exec(open(r"${scriptPath.replace(/\\/g, "/")}").read())`;
 
     console.log("Injecting script:", scriptPath);
     const result = await this.debugSession.customRequest("evaluate", {
