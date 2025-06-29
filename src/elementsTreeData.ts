@@ -101,6 +101,7 @@ export class ElementsTreeDataProvider
     }
 
     // TODO: use refloader to bundle python script in dist folder properly
+    // https://www.npmjs.com/package/ref-loader
     const scriptPath = __dirname + "/../src/injection.py";
     const expression = `exec(open(r"${scriptPath.replace(/\\/g, "/")}").read())`;
 
