@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as net from "net";
 
 export class ElementsTreeDataProvider
   implements vscode.TreeDataProvider<ItemData>
@@ -23,16 +24,21 @@ export class ElementsTreeDataProvider
    */
   private refreshIntervalToken: NodeJS.Timeout | undefined;
 
+  /** Server to communicate data from process. */
+  private server: net.Server;
+
   constructor(private context: vscode.ExtensionContext) {
     // Listen for debug session changes
     context.subscriptions.push(
       vscode.debug.onDidStartDebugSession((session) => {
         this.debugSession = session;
         this.lastFrameId = undefined; // Reset lastThreadId
+        // TODO: change to retry interval exponential backoff?
         setTimeout(() => {
-          this.refreshIntervalToken = setInterval(() => {
-            this.refresh();
-          }, 1000);
+          // this.refreshIntervalToken = setInterval(() => {
+          //   this.refresh();
+          // }, 1000);
+          this.injectScript();
         }, 1000);
       })
     );
@@ -47,6 +53,24 @@ export class ElementsTreeDataProvider
         this.refresh();
       })
     );
+
+    this.server = net.createServer();
+    this.server.listen(41329, "localhost", () => {
+      console.log("Server listening on port 41329");
+    });
+    this.server.on("connection", this.onServerConnection.bind(this));
+    context.subscriptions.push(new vscode.Disposable(this.server.close));
+  }
+
+  private onServerConnection(socket: net.Socket): void {
+    socket.on("data", (data) => {
+      const message = data.toString();
+      console.log("Received data from process:", message);
+    });
+
+    socket.on("error", (err) => {
+      console.error("Socket error:", err);
+    });
   }
 
   refresh(): void {
@@ -62,13 +86,30 @@ export class ElementsTreeDataProvider
       return Promise.resolve([new ItemData("No active debug session", "")]);
     }
 
-    if (!element) {
-      // Root level - execute simple Python expressions to demonstrate capability
-      return this.executePythonExpressions();
-    }
+    // if (!element) {
+    //   // Root level - execute simple Python expressions to demonstrate capability
+    //   return this.executePythonExpressions();
+    // }
 
     // For child elements, you can implement specific logic
     return Promise.resolve([]);
+  }
+
+  private async injectScript() {
+    if (!this.debugSession) {
+      return;
+    }
+
+    // TODO: use refloader to bundle python script in dist folder properly
+    const scriptPath = __dirname + "/../src/injection.py";
+    const expression = `exec(open(r"${scriptPath.replace(/\\/g, "/")}").read()) or "Initialized"`;
+
+    console.log("Injecting script:", scriptPath);
+    const result = await this.debugSession.customRequest("evaluate", {
+      expression,
+      context: "repl",
+    });
+    console.log(result);
   }
 
   private async executePythonExpressions(): Promise<ItemData[]> {
@@ -84,7 +125,7 @@ export class ElementsTreeDataProvider
         "2*3",
         "len('hello')",
         "__import__('sys').version_info.major",
-        "__import__('qtpy').QtCore.QCoreApplication"
+        "__import__('qtpy').QtCore.QCoreApplication",
       ];
 
       const threads = await this.debugSession.customRequest("threads");
