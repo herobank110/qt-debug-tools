@@ -1,6 +1,6 @@
-# qt-debug-tools README
+# Qt Debug Tools
 
-This is the README for your extension "qt-debug-tools". After writing up a brief description, we recommend including the following sections.
+Debug tools for Qt applications in Visual Studio Code.
 
 ## Features
 

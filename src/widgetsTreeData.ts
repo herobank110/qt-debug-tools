@@ -9,13 +9,13 @@ type ReceivedWidgetDataOne = {
 
 type ReceivedWidgetData = ReceivedWidgetDataOne[];
 
-export class ElementsTreeDataProvider
-  implements vscode.TreeDataProvider<ItemData>
+export class WidgetsTreeDataProvider
+  implements vscode.TreeDataProvider<WidgetTreeItem>
 {
   private _onDidChangeTreeData: vscode.EventEmitter<
-    ItemData | undefined | void
-  > = new vscode.EventEmitter<ItemData | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<ItemData | undefined | void> =
+    WidgetTreeItem | undefined | void
+  > = new vscode.EventEmitter<WidgetTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<WidgetTreeItem | undefined | void> =
     this._onDidChangeTreeData.event;
 
   private debugSession: vscode.DebugSession | undefined;
@@ -90,13 +90,13 @@ export class ElementsTreeDataProvider
     // this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: ItemData): vscode.TreeItem {
+  getTreeItem(element: WidgetTreeItem): vscode.TreeItem {
     return element;
   }
 
-  getChildren(element?: ItemData): Thenable<ItemData[]> {
+  getChildren(element?: WidgetTreeItem): Thenable<WidgetTreeItem[]> {
     if (!this.debugSession) {
-      const NO_ACTIVE_DEBUG_SESSION_ITEM = new ItemData({
+      const NO_ACTIVE_DEBUG_SESSION_ITEM = new WidgetTreeItem({
         class: "No active debug session",
         objectName: "",
         children: [],
@@ -110,11 +110,11 @@ export class ElementsTreeDataProvider
     if (!element) {
       // Root level - execute simple Python expressions to demonstrate capability
       // return this.executePythonExpressions();
-      const items = this.receivedWidgetData.map((x) => new ItemData(x));
+      const items = this.receivedWidgetData.map((x) => new WidgetTreeItem(x));
       return Promise.resolve(items);
     } else {
       return Promise.resolve(
-        element.received.children.map((x) => new ItemData(x))
+        element.received.children.map((x) => new WidgetTreeItem(x))
       );
     }
 
@@ -222,7 +222,7 @@ export class ElementsTreeDataProvider
   // }
 }
 
-export class ItemData extends vscode.TreeItem {
+export class WidgetTreeItem extends vscode.TreeItem {
   constructor(public received: ReceivedWidgetDataOne) {
     super("");
     this.label = received.class;
