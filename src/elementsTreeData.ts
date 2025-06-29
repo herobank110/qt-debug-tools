@@ -66,6 +66,7 @@ export class ElementsTreeDataProvider
     socket.on("data", (data) => {
       const message = data.toString();
       console.log("Received data from process:", message);
+      this._onDidChangeTreeData.fire();
     });
 
     socket.on("error", (err) => {
@@ -74,7 +75,8 @@ export class ElementsTreeDataProvider
   }
 
   refresh(): void {
-    this._onDidChangeTreeData.fire();
+    this.injectScript();
+    // this._onDidChangeTreeData.fire();
   }
 
   getTreeItem(element: ItemData): vscode.TreeItem {
@@ -103,7 +105,10 @@ export class ElementsTreeDataProvider
     // TODO: use refloader to bundle python script in dist folder properly
     // https://www.npmjs.com/package/ref-loader
     const scriptPath = __dirname + "/../src/injection.py";
-    const expression = `exec(open(r"${scriptPath.replace(/\\/g, "/")}").read())`;
+    const expression = `exec(open(r"${scriptPath.replace(
+      /\\/g,
+      "/"
+    )}").read())`;
 
     console.log("Injecting script:", scriptPath);
     const result = await this.debugSession.customRequest("evaluate", {
