@@ -11,17 +11,28 @@ export class ElementsTreeDataProvider
 
   private debugSession: vscode.DebugSession | undefined;
 
-  private intervalKey: NodeJS.Timeout | undefined;
+  /**
+   * Id of thread obtained through stack trace.
+   *
+   * Cached because it is slow to fetch.
+   */
+  private lastFrameId: string | undefined;
+
+  /**
+   * Interval key for refreshing the tree data.
+   */
+  private refreshIntervalToken: NodeJS.Timeout | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     // Listen for debug session changes
     context.subscriptions.push(
       vscode.debug.onDidStartDebugSession((session) => {
         this.debugSession = session;
+        this.lastFrameId = undefined; // Reset lastThreadId
         setTimeout(() => {
-          this.intervalKey = setInterval(() => {
+          this.refreshIntervalToken = setInterval(() => {
             this.refresh();
-          }, 250);
+          }, 1000);
         }, 1000);
       })
     );
@@ -29,16 +40,13 @@ export class ElementsTreeDataProvider
     context.subscriptions.push(
       vscode.debug.onDidTerminateDebugSession(() => {
         this.debugSession = undefined;
-        if (this.intervalKey) {
-          clearInterval(this.intervalKey);
-          this.intervalKey = undefined;
+        if (this.refreshIntervalToken) {
+          clearInterval(this.refreshIntervalToken);
+          this.refreshIntervalToken = undefined;
         }
         this.refresh();
       })
     );
-
-    // Set current debug session if already active
-    this.debugSession = vscode.debug.activeDebugSession;
   }
 
   refresh(): void {
@@ -89,13 +97,17 @@ export class ElementsTreeDataProvider
       if (!threadId) {
         throw new Error("MainThread not found");
       }
-      const stackTraceResult = await this.debugSession.customRequest(
-        "stackTrace",
-        {
-          threadId,
-        }
-      );
-      const frameId = stackTraceResult.stackFrames[0].id;
+
+      if (this.lastFrameId === undefined) {
+        const stackTraceResult = await this.debugSession.customRequest(
+          "stackTrace",
+          { threadId }
+        );
+        const frameId = stackTraceResult.stackFrames[0].id;
+        this.lastFrameId = frameId;
+      }
+      const frameId = this.lastFrameId;
+
       // sort of works but not on initialization. need to wait a moment
       // to let main debugpy extension initialize so puyt it on a timer!
       // await this.debugSession.customRequest("pause", { threadId });
