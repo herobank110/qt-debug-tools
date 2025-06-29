@@ -110,7 +110,7 @@ export class ElementsTreeDataProvider
 
       // sort of works but not on initialization. need to wait a moment
       // to let main debugpy extension initialize so puyt it on a timer!
-      // await this.debugSession.customRequest("pause", { threadId });
+      await this.debugSession.customRequest("pause", { threadId });
 
       for (const expression of expressions) {
         try {
@@ -125,10 +125,11 @@ export class ElementsTreeDataProvider
           results.push(new ItemData(`${expression}`, `Error: ${error}`));
         }
       }
+
       // not working for some reason...
-      // await this.debugSession.customRequest("continue", {
-      //   threadId,
-      // });
+      // setTimeout(() => {
+      //   this.debugSession!.customRequest("continue", { threadId });
+      // }, 100);
 
       return results.length > 0 ? results : [new ItemData("No results", "")];
     } catch (error) {
