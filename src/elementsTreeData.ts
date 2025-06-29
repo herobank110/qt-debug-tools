@@ -11,18 +11,28 @@ export class ElementsTreeDataProvider
 
   private debugSession: vscode.DebugSession | undefined;
 
+  private intervalKey: NodeJS.Timeout | undefined;
+
   constructor(private context: vscode.ExtensionContext) {
     // Listen for debug session changes
     context.subscriptions.push(
       vscode.debug.onDidStartDebugSession((session) => {
         this.debugSession = session;
-        this.refresh();
+        setTimeout(() => {
+          this.intervalKey = setInterval(() => {
+            this.refresh();
+          }, 250);
+        }, 1000);
       })
     );
 
     context.subscriptions.push(
       vscode.debug.onDidTerminateDebugSession(() => {
         this.debugSession = undefined;
+        if (this.intervalKey) {
+          clearInterval(this.intervalKey);
+          this.intervalKey = undefined;
+        }
         this.refresh();
       })
     );
