@@ -1,6 +1,14 @@
 import * as vscode from "vscode";
 import * as net from "net";
 
+type ReceivedWidgetDataOne = {
+  class: string;
+  objectName: string;
+  children: ReceivedWidgetDataOne[];
+};
+
+type ReceivedWidgetData = ReceivedWidgetDataOne[];
+
 export class ElementsTreeDataProvider
   implements vscode.TreeDataProvider<ItemData>
 {
@@ -26,6 +34,9 @@ export class ElementsTreeDataProvider
 
   /** Server to communicate data from process. */
   private server: net.Server;
+
+  /** Widgets data received from python process. */
+  private receivedWidgetData: ReceivedWidgetData | undefined;
 
   constructor(private context: vscode.ExtensionContext) {
     // Listen for debug session changes
@@ -65,7 +76,7 @@ export class ElementsTreeDataProvider
   private onServerConnection(socket: net.Socket): void {
     socket.on("data", (data) => {
       const message = data.toString();
-      console.log("Received data from process:", message);
+      this.receivedWidgetData = JSON.parse(message);
       this._onDidChangeTreeData.fire();
     });
 
@@ -85,13 +96,23 @@ export class ElementsTreeDataProvider
 
   getChildren(element?: ItemData): Thenable<ItemData[]> {
     if (!this.debugSession) {
-      return Promise.resolve([new ItemData("No active debug session", "")]);
+      const NO_ACTIVE_DEBUG_SESSION_ITEM = new ItemData({
+        class: "No active debug session",
+        objectName: "",
+        children: [],
+      });
+      return Promise.resolve([NO_ACTIVE_DEBUG_SESSION_ITEM]);
+    }
+    if (!this.receivedWidgetData) {
+      throw new Error("No widget data received");
     }
 
-    // if (!element) {
-    //   // Root level - execute simple Python expressions to demonstrate capability
-    //   return this.executePythonExpressions();
-    // }
+    if (!element) {
+      // Root level - execute simple Python expressions to demonstrate capability
+      // return this.executePythonExpressions();
+      const items = this.receivedWidgetData.map((x) => new ItemData(x));
+      return Promise.resolve(items);
+    }
 
     // For child elements, you can implement specific logic
     return Promise.resolve([]);
@@ -198,15 +219,15 @@ export class ElementsTreeDataProvider
 }
 
 export class ItemData extends vscode.TreeItem {
-  constructor(
-    label: string = "Hello",
-    description: string = "",
-    collapsibleState: vscode.TreeItemCollapsibleState = vscode
-      .TreeItemCollapsibleState.None
-  ) {
-    super(label, collapsibleState);
-    this.description = description;
-    this.tooltip = `${label}: ${description}`;
+  constructor(received: ReceivedWidgetDataOne) {
+    super("");
+    this.label = received.class;
+    this.description = received.objectName || undefined;
+    this.collapsibleState =
+      received.children.length === 0
+        ? vscode.TreeItemCollapsibleState.None
+        : vscode.TreeItemCollapsibleState.Collapsed;
+    // this.tooltip = `${label}: ${description}`;
   }
 
   //   iconPath = {
