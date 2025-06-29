@@ -112,6 +112,10 @@ export class ElementsTreeDataProvider
       // return this.executePythonExpressions();
       const items = this.receivedWidgetData.map((x) => new ItemData(x));
       return Promise.resolve(items);
+    } else {
+      return Promise.resolve(
+        element.received.children.map((x) => new ItemData(x))
+      );
     }
 
     // For child elements, you can implement specific logic
@@ -139,69 +143,69 @@ export class ElementsTreeDataProvider
     console.log(result);
   }
 
-  private async executePythonExpressions(): Promise<ItemData[]> {
-    if (!this.debugSession) {
-      return [];
-    }
+  // private async executePythonExpressions(): Promise<ItemData[]> {
+  //   if (!this.debugSession) {
+  //     return [];
+  //   }
 
-    try {
-      const results: ItemData[] = [];
+  //   try {
+  //     const results: ItemData[] = [];
 
-      // Simple Python expressions to demonstrate execution capability
-      const expressions = [
-        "2*3",
-        "len('hello')",
-        "__import__('sys').version_info.major",
-        "__import__('qtpy').QtCore.QCoreApplication",
-      ];
+  //     // Simple Python expressions to demonstrate execution capability
+  //     const expressions = [
+  //       "2*3",
+  //       "len('hello')",
+  //       "__import__('sys').version_info.major",
+  //       "__import__('qtpy').QtCore.QCoreApplication",
+  //     ];
 
-      const threads = await this.debugSession.customRequest("threads");
-      const threadId: any = threads.threads.find(
-        (x: any) => x.name === "MainThread"
-      )?.id;
-      if (!threadId) {
-        throw new Error("MainThread not found");
-      }
+  //     const threads = await this.debugSession.customRequest("threads");
+  //     const threadId: any = threads.threads.find(
+  //       (x: any) => x.name === "MainThread"
+  //     )?.id;
+  //     if (!threadId) {
+  //       throw new Error("MainThread not found");
+  //     }
 
-      if (this.lastFrameId === undefined) {
-        const stackTraceResult = await this.debugSession.customRequest(
-          "stackTrace",
-          { threadId }
-        );
-        const frameId = stackTraceResult.stackFrames[0].id;
-        this.lastFrameId = frameId;
-      }
-      const frameId = this.lastFrameId;
+  //     if (this.lastFrameId === undefined) {
+  //       const stackTraceResult = await this.debugSession.customRequest(
+  //         "stackTrace",
+  //         { threadId }
+  //       );
+  //       const frameId = stackTraceResult.stackFrames[0].id;
+  //       this.lastFrameId = frameId;
+  //     }
+  //     const frameId = this.lastFrameId;
 
-      // sort of works but not on initialization. need to wait a moment
-      // to let main debugpy extension initialize so puyt it on a timer!
-      await this.debugSession.customRequest("pause", { threadId });
+  //     // sort of works but not on initialization. need to wait a moment
+  //     // to let main debugpy extension initialize so puyt it on a timer!
+  //     await this.debugSession.customRequest("pause", { threadId });
 
-      for (const expression of expressions) {
-        try {
-          const response = await this.debugSession.customRequest("evaluate", {
-            expression,
-            frameId,
-            context: "watch",
-          });
-          const result = response.result;
-          results.push(new ItemData(`${expression}`, `= ${result}`));
-        } catch (error) {
-          results.push(new ItemData(`${expression}`, `Error: ${error}`));
-        }
-      }
+  //     for (const expression of expressions) {
+  //       try {
+  //         const response = await this.debugSession.customRequest("evaluate", {
+  //           expression,
+  //           frameId,
+  //           context: "watch",
+  //         });
+  //         const result = response.result;
+  //         results.push(new ItemData(`${expression}`, `= ${result}`));
+  //       } catch (error) {
+  //         results.push(new ItemData(`${expression}`, `Error: ${error}`));
+  //       }
+  //     }
 
-      // not working for some reason...
-      // setTimeout(() => {
-      //   this.debugSession!.customRequest("continue", { threadId });
-      // }, 100);
+  //     // not working for some reason...
+  //     // setTimeout(() => {
+  //     //   this.debugSession!.customRequest("continue", { threadId });
+  //     // }, 100);
 
-      return results.length > 0 ? results : [new ItemData("No results", "")];
-    } catch (error) {
-      console.error("Error executing Python expressions:", error);
-      return [new ItemData("Error", "Failed to execute Python expressions")];
-    }
-  }
+  //     return results.length > 0 ? results : [new ItemData("No results", "")];
+  //   } catch (error) {
+  //     console.error("Error executing Python expressions:", error);
+  //     return [new ItemData("Error")];
+  //   }
+  // }
 
   // private async evaluatePythonExpression(expression: string): Promise<any> {
   //   if (!this.debugSession) {
@@ -219,7 +223,7 @@ export class ElementsTreeDataProvider
 }
 
 export class ItemData extends vscode.TreeItem {
-  constructor(received: ReceivedWidgetDataOne) {
+  constructor(public received: ReceivedWidgetDataOne) {
     super("");
     this.label = received.class;
     this.description = received.objectName || undefined;
