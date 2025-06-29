@@ -54,7 +54,6 @@ export class ElementsTreeDataProvider
   }
 
   getTreeItem(element: ItemData): vscode.TreeItem {
-    console.log("getTreeItem", element);
     return element;
   }
 
@@ -62,8 +61,6 @@ export class ElementsTreeDataProvider
     if (!this.debugSession) {
       return Promise.resolve([new ItemData("No active debug session", "")]);
     }
-
-    console.log("getChildren", element);
 
     if (!element) {
       // Root level - execute simple Python expressions to demonstrate capability
@@ -75,7 +72,6 @@ export class ElementsTreeDataProvider
   }
 
   private async executePythonExpressions(): Promise<ItemData[]> {
-    console.log("executePythonExpressions()");
     if (!this.debugSession) {
       return [];
     }
