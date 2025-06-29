@@ -88,6 +88,7 @@ export class ElementsTreeDataProvider
         "2*3",
         "len('hello')",
         "__import__('sys').version_info.major",
+        "__import__('qtpy').QtCore.QCoreApplication"
       ];
 
       const threads = await this.debugSession.customRequest("threads");
