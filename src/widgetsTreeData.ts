@@ -15,8 +15,9 @@ export class WidgetsTreeDataProvider
   private _onDidChangeTreeData: vscode.EventEmitter<
     WidgetTreeItem | undefined | void
   > = new vscode.EventEmitter<WidgetTreeItem | undefined | void>();
-  readonly onDidChangeTreeData: vscode.Event<WidgetTreeItem | undefined | void> =
-    this._onDidChangeTreeData.event;
+  readonly onDidChangeTreeData: vscode.Event<
+    WidgetTreeItem | undefined | void
+  > = this._onDidChangeTreeData.event;
 
   private debugSession: vscode.DebugSession | undefined;
 
@@ -108,18 +109,15 @@ export class WidgetsTreeDataProvider
     }
 
     if (!element) {
-      // Root level - execute simple Python expressions to demonstrate capability
-      // return this.executePythonExpressions();
+      // Root level - get top level widgets.
       const items = this.receivedWidgetData.map((x) => new WidgetTreeItem(x));
       return Promise.resolve(items);
-    } else {
-      return Promise.resolve(
-        element.received.children.map((x) => new WidgetTreeItem(x))
-      );
     }
 
-    // For child elements, you can implement specific logic
-    return Promise.resolve([]);
+    // Get children of specified widget.
+    return Promise.resolve(
+      element.received.children.map((x) => new WidgetTreeItem(x))
+    );
   }
 
   private async injectScript() {
@@ -129,18 +127,29 @@ export class WidgetsTreeDataProvider
 
     // TODO: use refloader to bundle python script in dist folder properly
     // https://www.npmjs.com/package/ref-loader
-    const scriptPath = __dirname + "/../src/injection.py";
-    const expression = `exec(open(r"${scriptPath.replace(
-      /\\/g,
-      "/"
-    )}").read())`;
+    const scriptPath = (__dirname + "/../src/injection.py").replace(/\\/g, "/");
+    const expression = `exec(open(r"${scriptPath}").read())`;
 
-    console.log("Injecting script:", scriptPath);
-    const result = await this.debugSession.customRequest("evaluate", {
+    // console.log("Injecting script:", scriptPath);
+    const _result = await this.debugSession.customRequest("evaluate", {
       expression,
       context: "repl",
     });
-    console.log(result);
+  }
+
+  resolveTreeItem(
+    item: vscode.TreeItem,
+    element: WidgetTreeItem,
+    token: vscode.CancellationToken
+  ): vscode.ProviderResult<vscode.TreeItem> {
+    // console.log(
+    //   "Resolving tree item:",
+    //   item.label,
+    //   element.received.class,
+    //   token
+    // );
+    // TODO: get current widget state values dynamically when hovered and tooltip requested
+    return item;
   }
 
   // private async executePythonExpressions(): Promise<ItemData[]> {
@@ -231,6 +240,15 @@ export class WidgetTreeItem extends vscode.TreeItem {
       received.children.length === 0
         ? vscode.TreeItemCollapsibleState.None
         : vscode.TreeItemCollapsibleState.Collapsed;
+
+    this.command = {
+      command: "qt-debug-tools.helloWorld",
+      title: "Hello World",
+      // title: "Show Widget Details",
+      // command: "qt-debug-tools.showWidgetDetails",
+      arguments: [this],
+    };
+
     // this.tooltip = `${label}: ${description}`;
   }
 

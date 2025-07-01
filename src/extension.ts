@@ -19,6 +19,12 @@ export function activate(context: vscode.ExtensionContext) {
       widgetsTreeDataProvider.refresh();
     })
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("qt-debug-tools.helloWorld", (item) => {
+      vscode.window.showInformationMessage("Hello World from Qt Debug Tools!", item);
+    })
+  );
 }
 
 // This method is called when your extension is deactivated
